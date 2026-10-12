@@ -1,0 +1,19 @@
+# ============================================================================
+# PENTING: asset game 1,34 GB TIDAK BOLEH masuk git.
+# Git untuk kode + manifest saja. Asset hidup di GitHub Release (lihat backend/).
+# ============================================================================
+game-files/*
+!game-files/README.md
+
+# hasil generate yang ukurannya besar / sementara
+*.part
+*.tmp
+uji/
+
+# node / os
+node_modules/
+.DS_Store
+Thumbs.db
+
+# TSV perantara (dibuat ulang tiap generate)
+backend/manifest-assets.tsv

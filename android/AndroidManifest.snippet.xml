@@ -1,0 +1,95 @@
+<!--
+  PERBAIKAN BUG #5.
+
+  Keadaan manifest SanzzClient v1.0.0 sekarang (hasil decode AXML):
+
+    permission yang SUDAH ada (akhirnya kepakai semua):
+      android.permission.INTERNET
+      android.permission.ACCESS_NETWORK_STATE
+      android.permission.ACCESS_WIFI_STATE
+      android.permission.WAKE_LOCK
+      android.permission.FOREGROUND_SERVICE            <- nganggur
+      android.permission.FOREGROUND_SERVICE_DATA_SYNC  <- nganggur
+      android.permission.POST_NOTIFICATIONS
+      android.permission.MANAGE_EXTERNAL_STORAGE
+      android.permission.READ_EXTERNAL_STORAGE
+      android.permission.WRITE_EXTERNAL_STORAGE
+      android.permission.RECORD_AUDIO
+      android.permission.VIBRATE
+      android.permission.DUMP
+
+    komponen yang terdaftar:
+      activity  com.sanzz.client.MainActivity   (MAIN / LAUNCHER)
+      activity  ro.alynsampmobile.game.Game
+      provider  ro.alynsampmobile.launcher.fileprovider
+      provider  androidx-startup
+      -> TIDAK ADA <service> SAMA SEKALI
+
+  Jadi: permission foreground service sudah di-declare, tapi tidak ada service-nya.
+  Tanpa service ini, download 1,34 GB DIBUNUH Android ~1 menit setelah app
+  di-background (Doze / App Standby / cached-process reaper).
+
+  Tambahkan blok <service> di bawah ke dalam <application>.
+-->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Kalau belum ada, pastikan dua ini declared (kamu sudah punya keduanya) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application>
+
+        <!-- ============================================================
+             INI YANG HILANG. foregroundServiceType WAJIB cocok dengan
+             permission FOREGROUND_SERVICE_DATA_SYNC di atas.
+             Android 14 (API 34) menolak startForeground() kalau type-nya
+             tidak dideklarasikan di sini.
+             ============================================================ -->
+        <service
+            android:name="com.sanzz.client.data.download.DownloadProgressService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <!-- opsional tapi disarankan: biar proses tidak gampang di-kill
+             saat layar mati lama. Jangan pakai partial wake lock manual —
+             foreground service dataSync sudah cukup di Android 12+. -->
+
+    </application>
+
+    <!--
+      CATATAN TAMBAHAN
+
+      1. applicationId kamu masih "ro.alynsampmobile.launcher"
+         (terlihat dari authority provider "ro.alynsampmobile.launcher.fileprovider"
+          dan permission "ro.alynsampmobile.launcher.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION").
+         Kalau SanzzClient mau rilis atas nama sendiri:
+           - ganti applicationId ke com.sanzz.client
+           - ganti authority FileProvider  -> com.sanzz.client.fileprovider
+           - ganti action intent service   -> sudah pakai com.sanzz.client.download.*
+           - bikin signing key sendiri (jangan pakai key Alyn)
+         Perhatikan: ro.alynsampmobile.game.Game membaca asset dari path tertentu,
+         jadi tes ulang setelah ganti applicationId.
+
+      2. POST_NOTIFICATIONS adalah runtime permission di Android 13+.
+         Minta SEBELUM DownloadProgressService.start(), kalau tidak
+         startForeground() tetap jalan tapi notifikasinya tidak muncul
+         (dan di Android 14 bisa kena ForegroundServiceStartNotAllowedException
+          kalau dipanggil saat app di background).
+
+      3. android:largeHeap="true" TIDAK diperlukan untuk download streaming
+         (buffer 64 KB per file x 3 paralel = 192 KB). Jangan ditambah,
+         justru memperbesar risiko OOM di device 2 GB RAM.
+
+      4. Kalau target device-mu banyak yang storage-nya sempit: 1,34 GB asset
+         + 39 MB APK + ruang ekstraksi = butuh ~3 GB bebas. Situs Alyn sendiri
+         menulis "~2 GB with game files". Tambahkan cek StatFs sebelum mulai:
+
+            val free = StatFs(gameDir.absolutePath).availableBytes
+            if (free < totalBytes * 1.15) -> tolak dengan pesan yang jelas
+    -->
+</manifest>

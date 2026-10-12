@@ -1,0 +1,70 @@
+{
+  "_CATATAN": "Skema manifest PERSIS seperti GET https://alynsampmobile.pro/api/game-files (diambil 12 Okt 2026). Total asli: 295 file / 1.376,2 MB / 1,344 GB. Di bawah ini cuma 6 entri contoh. Field `size` berupa STRING byte. Field `sha256` TIDAK ada di Alyn - aku sarankan kamu tambahkan sendiri.",
+  "_TOTAL_ASLI": {
+    "files": 295,
+    "bytes": 1443047957,
+    "mb": 1376.2,
+    "gb": 1.344
+  },
+  "_RESPONSE_HEADERS_CDN": {
+    "server": "cloudflare",
+    "accept-ranges": "bytes",
+    "content-type": "application/octet-stream",
+    "cache-control": "public, max-age=120",
+    "cf-cache-status": "HIT",
+    "x-served-by": "alynsampmobile.pro",
+    "range_test": "Range: bytes=100000000-100000999 -> HTTP 206 (resume OK)"
+  },
+  "_UPDATE_CONFIG_ASLI": {
+    "status": true,
+    "game_version": "20.7.8",
+    "game_url": "https://alynsampmobile.pro/api/game/alyn_sampmobile-20.7.8-c11386bd649a.apk",
+    "game_files": "https://alynsampmobile.pro/api/game-files",
+    "discord": "https://alynsampmobile.pro/discord",
+    "changelog": "https://alynsampmobile.pro/api/changelog",
+    "servers": "https://alynsampmobile.pro/api/servers",
+    "banned": "https://alynsampmobile.pro/api/banned",
+    "full_list": "https://alynsampmobile.pro/api/game-files-list?type=full",
+    "lite_list": "https://alynsampmobile.pro/api/game-files-list?type=lite",
+    "samp_list": "https://alynsampmobile.pro/api/game-files-list?type=samp",
+    "new_list": "https://alynsampmobile.pro/api/game-files-list?type=new"
+  },
+  "files": [
+    {
+      "name": "gta3.img",
+      "size": "283521024",
+      "path": "texdb/gta3.img",
+      "url": "https://alynsampmobile.pro/game-files/texdb/gta3.img"
+    },
+    {
+      "name": "game.img",
+      "size": "283521024",
+      "path": "textures/game.img",
+      "url": "https://alynsampmobile.pro/game-files/textures/game.img"
+    },
+    {
+      "name": "game.bin",
+      "size": "233769877",
+      "path": "textures/game.bin",
+      "url": "https://alynsampmobile.pro/game-files/textures/game.bin"
+    },
+    {
+      "name": "gta3.dxt.dat",
+      "size": "185311596",
+      "path": "texdb/gta3/gta3.dxt.dat",
+      "url": "https://alynsampmobile.pro/game-files/texdb/gta3/gta3.dxt.dat"
+    },
+    {
+      "name": "tracks2.dat",
+      "size": "1",
+      "path": "SAMP/tracks2.dat",
+      "url": "https://alynsampmobile.pro/game-files/SAMP/tracks2.dat"
+    },
+    {
+      "name": "tracks4.dat",
+      "size": "1",
+      "path": "SAMP/tracks4.dat",
+      "url": "https://alynsampmobile.pro/game-files/SAMP/tracks4.dat"
+    }
+  ]
+}

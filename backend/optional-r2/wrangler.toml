@@ -1,0 +1,52 @@
+name = "sanzz-asset-api"
+main = "worker.mjs"
+compatibility_date = "2026-01-01"
+
+# Bucket R2 yang sama dipakai untuk: manifest.json, changelog.txt,
+# dan (opsional) folder apk/. File asset game dilayani lewat custom
+# domain bucket ini, BUKAN lewat Worker.
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "sanzz-assets"
+
+[vars]
+# ------------------------------------------------------------------
+# GANTI SEMUA yang berisi "client-mu.example"
+# ------------------------------------------------------------------
+
+# Kill switch. Set "false" lalu `wrangler deploy` → semua client berhenti
+# mencoba download. Pakai ini kalau CDN sedang bermasalah, supaya tidak ada
+# badai retry dari ribuan device.
+SERVICE_ONLINE = "true"
+
+GAME_VERSION = "1.0.0"
+
+# Domain publik bucket R2-mu (R2 → Settings → Custom Domain).
+# WAJIB HTTPS. Android 9+ memblokir cleartext HTTP secara default.
+PUBLIC_BASE = "https://cdn.client-mu.example"
+
+# Origin tempat Worker ini menempel. Biasanya SAMA dengan PUBLIC_BASE, asal kamu
+# menambahkan route (lihat catatan di bawah) supaya /api/* jatuh ke Worker dan
+# /game-files/* jatuh langsung ke R2. Kalau API-mu di domain lain, isi di sini.
+API_ORIGIN = "https://cdn.client-mu.example"
+
+APK_URL = "https://cdn.client-mu.example/apk/SanzzClient-1.0.0-arm64.apk"
+
+# Endpoint daftar server. Bolehmengarah ke domain lain kalau API server-mu terpisah.
+SERVERS_URL = "https://cdn.client-mu.example/api/servers"
+
+# Dipakai hanya kalau changelog.txt belum ada di bucket.
+CHANGELOG_FALLBACK = "Rilis pertama."
+
+# ------------------------------------------------------------------
+# Catatan
+# ------------------------------------------------------------------
+# • Free tier Worker: 100.000 request/hari. Endpoint JSON-mu cuma 2 request
+#   per client per sesi, jadi ini setara ±50.000 user aktif/hari sebelum bayar.
+# • Paid Worker $5/bulan = 10 juta request.
+# • Jangan pernah menaruh file asset di jalur Worker: 1,34 GB lewat Worker
+#   membuang CPU time dan menambah biaya tanpa manfaat.
+# • Setelah deploy, tambahkan route agar Worker menempel di domain yang sama:
+#     [[routes]]
+#     pattern = "cdn.client-mu.example/api/*"
+#     zone_name = "client-mu.example"

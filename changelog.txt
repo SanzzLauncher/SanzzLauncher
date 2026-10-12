@@ -1,0 +1,3 @@
+v1.0.0
+- Rilis pertama tooling backend asset.
+- Jalur gratis: GitHub Releases + jsDelivr. Tanpa server, tanpa kartu kredit.
