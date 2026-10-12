@@ -368,6 +368,7 @@ set `"status": false` untuk menghentikan semua client (kill switch saat darurat)
 |---|---|---|
 | `Range test → HTTP 404` | Tag salah / asset belum ter-upload | `gh release view v1.0.0 -R <U>/sanzz-assets` |
 | `Range test → HTTP 200` (bukan 206) | URL redirect tidak diikuti | Pastikan `-L` di curl; di client pastikan `followRedirects(true)` (sudah default) |
+| `Range: bytes=-500` → **HTTP 501** | **Normal.** Fastly (CDN GitHub) menolak *suffix range* | Bukan bug. Pakai bentuk `bytes=N-` (open-ended) — itu yang dipakai `AssetDownloader`, dan terverifikasi 206 |
 | jsDelivr 404 terus | Cache pertama butuh waktu, atau repo private | Tunggu 5 menit; cek repo benar-benar public |
 | `✗ MANIFEST BASI` | Asset diedit setelah generate manifest | Regenerate (perintahnya sudah ditampilkan script) |
 | Upload gagal massal | Rate limit GitHub | Turunkan paralel ke `2`, jalankan ulang — yang sudah ada di-skip |

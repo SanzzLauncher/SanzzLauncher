@@ -65,9 +65,11 @@ object GameInstallerV2 {
      * ISI INI. Repo publik berisi asset berhak cipta Rockstar bisa kena DMCA
      * kapan saja; tanpa mirror kedua, semua client mati serentak.
      */
-    private val mirrorRewrites = listOf(
-        // "USER/REPO" utama -> cadangan. Tambah sebanyak yang kamu punya.
-        // "$GH_USER/$GH_REPO" to "user-kedua/repo-cadangan",
+    // Tipe eksplisit WAJIB di sini. Tanpa itu `listOf()` yang isinya cuma komentar
+    // jadi List<Nothing>, dan destructuring `(from, to)` di bawah gagal dikompilasi.
+    private val mirrorRewrites: List<Pair<String, String>> = listOf(
+        // Buka komentarnya setelah repo mirror-mu ada. Boleh lebih dari satu.
+        // "$GH_USER/$GH_REPO" to "$GH_USER/SanzzLauncher-mirror",
     )
 
     private fun mirrorsFor(f: com.sanzz.client.data.download.RemoteFile): List<String> =

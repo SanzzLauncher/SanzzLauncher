@@ -117,6 +117,34 @@ Tooling di repo ini sudah diuji, bukan cuma ditulis:
 | jsDelivr: branch / tag / tanpa ref | ✅ HTTP 200 semua |
 | GitHub Release: `accept-ranges` | ✅ `bytes` |
 | GitHub Release: Range tengah file 116 MB | ✅ HTTP 206 |
+| **Di repo ini**: upload 3 asset via API | ✅ HTTP 201, ukuran cocok semua |
+| **Di repo ini**: `Range: bytes=2500000-` | ✅ HTTP 206 + `Content-Range` benar |
+| **Di repo ini**: unduh penuh lalu cek sha256 | ✅ cocok dengan manifest |
+| **Di repo ini**: potong 2 bagian → gabung | ✅ identik byte-per-byte dengan unduhan utuh |
+| **Di repo ini**: jsDelivr menyajikan file repo | ✅ HTTP 200 |
+| **Di repo ini**: raw.githubusercontent (fallback) | ✅ HTTP 200 |
 
-Yang **belum** bisa diuji dari sini: upload 295 file asset sungguhan (isinya tidak
-ada di repo ini) dan build APK-nya (proyek Android-nya belum ada di repo).
+### Jebakan yang ketemu dari uji nyata
+
+Asset release GitHub disajikan lewat **Fastly**, dan Fastly menolak *suffix range*:
+
+```
+Range: bytes=-500      → HTTP 501 "Unsupported client range" (Error 54113)
+Range: bytes=2500000-  → HTTP 206 ✅   ← ini yang dipakai AssetDownloader
+```
+
+Sebagai pembanding, server Alyn mendukung keduanya (`bytes=-500` → 206).
+
+Dampaknya sudah ditangani: `AssetDownloader` hanya mengirim bentuk `bytes=N-`, dan
+`isRetryableStatus()` kini mengecualikan 501/505 supaya tidak membakar 5 percobaan
+retry untuk error yang tidak akan pernah sembuh.
+
+### Yang belum bisa diuji dari sini
+
+- Upload 295 file asset sungguhan — isinya tidak ada di repo ini, lihat bagian
+  "Asset game tidak termasuk" di atas.
+- Build APK — proyek Android-nya belum ada di repo. File di `android/` dirancang
+  untuk disalin ke proyek Compose yang sudah ada.
+- `github-release-upload.sh` end-to-end — butuh `gh` CLI. Sudah diuji terhadap stub
+  `gh` untuk 4 skenario (lihat `backend/docs/SETUP-BACKEND-GRATIS.md`); jalur API
+  yang dipakai `gh` di balik layar sudah diverifikasi langsung di repo ini.

@@ -392,11 +392,26 @@ class AssetDownloader(
         const val EMIT_INTERVAL_MS = 200L   // 5 Hz
         const val BACKOFF_MS = 800L
 
-        /** 5xx + rate limit = boleh diulang. Persis semangat isRetryableStatus() Alyn. */
+        /**
+         * 5xx + rate limit = boleh diulang. Persis semangat isRetryableStatus() Alyn.
+         *
+         * PENGECUALIAN PENTING (ditemukan dari uji nyata ke GitHub Release, Okt 2026):
+         * asset release GitHub disajikan lewat Fastly, dan Fastly membalas
+         *   HTTP 501 "Unsupported client range" (Error 54113)
+         * untuk header `Range: bytes=-N` (suffix range).
+         *
+         * 501 dan 505 tidak akan pernah sembuh dengan retry, jadi TIDAK boleh
+         * dianggap retryable — kalau tidak, kita membakar 5 percobaan + backoff
+         * untuk error yang sudah pasti gagal.
+         *
+         * Downloader ini hanya mengirim bentuk `bytes=N-` (open-ended) yang
+         * terverifikasi dibalas 206 + Content-Range yang benar, jadi 501
+         * seharusnya tidak muncul. Ini jaring pengaman.
+         */
         fun isRetryableStatus(code: Int): Boolean = when (code) {
             408, 425, 429 -> true
+            501, 505 -> false              // tidak akan sembuh dengan retry
             in 500..599 -> true
-            in 520..529 -> true   // Cloudflare
             else -> false
         }
     }
