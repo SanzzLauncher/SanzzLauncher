@@ -16,6 +16,9 @@ Database       tidak perlu
 
 | Path | Isi |
 |---|---|
+| `backend/run-all.sh` | **Satu perintah:** verifikasi → generate → upload → push → uji |
+| `backend/verify-game-files.mjs` | Cek folder asset vs spec 295 file sebelum upload |
+| `backend/game-files-spec.json` | Daftar 295 path + ukuran yang dibutuhkan (bukan assetnya) |
 | `backend/generate-github-manifest.mjs` | Scan `game-files/` → `manifest.json` (+ sha256) & `config.json` |
 | `backend/github-release-upload.sh` | Upload 295 asset ke Release, paralel, **idempotent** |
 | `backend/docs/SETUP-BACKEND-GRATIS.md` | **← MULAI DARI SINI.** Runbook 10 tahap |
@@ -32,29 +35,52 @@ Database       tidak perlu
 
 ## Mulai
 
+**Satu perintah** (setelah `game-files/` terisi):
+
 ```bash
-# 1. Install (sekali saja)
-gh auth login
-#    butuh: git, gh CLI, Node.js 18+
-
-# 2. Taruh asset di game-files/   ← lihat game-files/README.md
-#    Struktur folder HARUS persis: texdb/gta3.img, textures/game.img, dst.
-
-# 3. Generate manifest
 cd backend
+./run-all.sh ../game-files v1.0.0 8
+```
+
+Itu menjalankan: preflight → **verifikasi kelengkapan** → generate manifest →
+upload Release → push → uji dari internet (Range 206, jsDelivr, fallback).
+Berhenti di tahap mana pun yang gagal, aman dijalankan ulang.
+
+Prasyarat: `git`, `gh` CLI (`gh auth login`), Node 18+, `curl`.
+
+### Kalau mau per tahap
+
+```bash
+cd backend
+node verify-game-files.mjs ../game-files                                  # ← cek dulu, murah
 node generate-github-manifest.mjs ../game-files SanzzLauncher SanzzLauncher v1.0.0 ../manifest.json
 mv ../manifest-config.json ../config.json
-
-# 4. Upload ke Release (idempotent — aman diulang kalau koneksi putus)
 ./github-release-upload.sh SanzzLauncher SanzzLauncher v1.0.0 ../game-files 8
-
-# 5. Push manifest supaya bisa disajikan jsDelivr
-cd ..
-git add manifest.json config.json changelog.txt
+cd .. && git add manifest.json config.json changelog.txt
 git commit -m "asset v1.0.0" && git push
 ```
 
 Panduan lengkap + verifikasi + troubleshooting: **`backend/docs/SETUP-BACKEND-GRATIS.md`**
+
+---
+
+## Cek kelengkapan asset dulu, sebelum upload 1,34 GB
+
+```bash
+node backend/verify-game-files.mjs ./game-files
+node backend/verify-game-files.mjs ./game-files --list    # tampilkan semua yang kurang
+node backend/verify-game-files.mjs ./game-files --json     # untuk scripting
+```
+
+Membandingkan foldermu dengan **`backend/game-files-spec.json`** — daftar 295 path
++ ukuran byte yang dibutuhkan client. File spec itu **hanya nama dan ukuran**, tidak
+berisi asset apa pun, jadi aman di-commit.
+
+Yang dilaporkan: file yang kurang (diurutkan dari terbesar), file yang ukurannya beda,
+file ekstra, ringkasan per grup, progress bar byte, dan **deteksi otomatis dua path
+yang paling sering salah** (`models/gta3.img` dan `texdb/gta3.txt`).
+
+Exit code `0` = siap upload, `1` = belum lengkap. `run-all.sh` memakai ini sebagai gerbang.
 
 ---
 
@@ -138,6 +164,39 @@ Sebagai pembanding, server Alyn mendukung keduanya (`bytes=-500` → 206).
 Dampaknya sudah ditangani: `AssetDownloader` hanya mengirim bentuk `bytes=N-`, dan
 `isRetryableStatus()` kini mengecualikan 501/505 supaya tidak membakar 5 percobaan
 retry untuk error yang tidak akan pernah sembuh.
+
+### Temuan dari menjalankan verifier terhadap APK SanzzClient v1.0.0
+
+Asset yang dibundel di dalam APK (27 MB / 213 file) dibandingkan dengan spec 295 file:
+
+```
+✓ cocok persis        4 file ·    3,6 MB     ← data/fonts.dat, data/ShopUVs.dat, dll
+✗ ukuran beda         6 file ·    0,1 MB     ← SEMUA file .cfg kontrol sentuh
+✗ tidak ada         285 file · 1372,5 MB     ← inilah yang harus di-download
+! ekstra (bundel)   203 file                 ← Text/*.gxt, Textures/, monetloader/, dexopt/
+```
+
+**6 file `.cfg` itu perlu keputusan.** Yang dibundel di APK ukurannya beda dari yang
+ada di manifest:
+
+```
+data/TouchDefaultPhone3x2.cfg          APK=10977   manifest=10912
+data/TouchDefaultPhoneWidescreen.cfg   APK=10991   manifest=10924
+data/TouchDefaultTablet4x3.cfg         APK=10992   manifest=10926
+data/TouchDefaultTabletWidescreen.cfg  APK=10990   manifest=10923
+data/360Default960x720.cfg             APK=10897   manifest=10888
+data/360Default1280x720.cfg            APK=10907   manifest=10898
+```
+
+Itu layout kontrol sentuh. Karena ukurannya tidak cocok, `AssetDownloader` akan
+mengunduh dan **menimpa** versi yang dibundel. Kalau setelah download kontrol terasa
+aneh, ini sebabnya. Dua pilihan:
+
+- **Biarkan tertimpa** (perilaku default, sama seperti Alyn) — tidak perlu apa-apa.
+- **Pertahankan versi APK**: buang 6 entri itu dari manifest setelah generate:
+  ```bash
+  node -e "const f='manifest.json',d=require('./'+f),x=new Set(['data/TouchDefaultPhone3x2.cfg','data/TouchDefaultPhoneWidescreen.cfg','data/TouchDefaultTablet4x3.cfg','data/TouchDefaultTabletWidescreen.cfg','data/360Default960x720.cfg','data/360Default1280x720.cfg']);d.files=d.files.filter(e=>!x.has(e.path));d.total_files=d.files.length;d.total_bytes=String(d.files.reduce((a,e)=>a+ +e.size,0));require('fs').writeFileSync(f,JSON.stringify(d))"
+  ```
 
 ### Yang belum bisa diuji dari sini
 
